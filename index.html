@@ -803,8 +803,13 @@ function saveLog(){
   if(editingId){ const i=logs.findIndex(l=>l.id===editingId); if(i>=0) logs[i]=log; }
   else logs.unshift(log);
   saveLogs(); closeLogModal();
-  if(currentDetailId && editingId && currentDetailId===editingId) showDetail(log.id);
-  else showList();
+  if(editingId){
+    // 수정: 상세 뷰 또는 목록 어디서 수정했든 바로 상세 뷰로
+    showDetail(log.id);
+  } else {
+    // 새 로그: 작성 후 바로 해당 상세 뷰로
+    showDetail(log.id);
+  }
   showToast(editingId?'수정 완료!':'저장 완료!');
 }
 
