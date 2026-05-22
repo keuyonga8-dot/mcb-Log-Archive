@@ -272,7 +272,6 @@ body.layout-compact .main-inner{max-width:660px;}
     <div class="nav-section">
       <div class="nav-label">백업</div>
       <button class="nav-btn" onclick="exportJSON()"><span class="nav-icon">💾</span>JSON 내보내기</button>
-      <button class="nav-btn" onclick="exportHTML()"><span class="nav-icon">📄</span>HTML 내보내기</button>
       <button class="nav-btn" onclick="document.getElementById('import-file').click()"><span class="nav-icon">📂</span>불러오기</button>
       <input type="file" id="import-file" accept=".json" hidden onchange="importJSON(this)">
     </div>
@@ -960,25 +959,7 @@ function exportJSON(){
   a.download=`logboard_${new Date().toISOString().slice(0,10)}.json`; a.click();
   showToast('JSON 내보내기 완료');
 }
-function exportHTML(){
-  const ts=new Date().toISOString().slice(0,10);
-  const body=logs.map(log=>{
-    const title=log.title||new Date(log.id).toLocaleString('ko-KR');
-    const banner=log.themeImg?`<div style="width:100%;height:200px;overflow:hidden;border-radius:8px;margin-bottom:16px;"><img src="${log.themeImg}" style="width:100%;height:100%;object-fit:cover;"></div>`:'';
-    const turns=(log.turns||[]).map(t=>{
-      const b=t.body?`<div style="font-family:'Noto Serif KR',serif;font-size:13.5px;line-height:2.05;white-space:pre-wrap;word-break:keep-all;">${t.body}</div>`:'';
-      const w=t.html?`<div style="margin-top:12px;">${t.html}</div>`:'';
-      const img=t.img?`<div style="margin-top:12px;"><img src="${t.img}" style="max-width:100%;border-radius:8px;"></div>`:'';
-      return `<div style="background:#fffefb;border:1px solid #e8dfd0;border-radius:10px;padding:18px 20px;margin-bottom:12px;">${b}${w}${img}</div>`;
-    }).join('');
-    return `<div style="margin-bottom:48px;border-top:2px solid #e8dfd0;padding-top:20px;"><h2 style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:500;margin-bottom:14px;">${escH(title)}</h2>${banner}${turns}</div>`;
-  }).join('');
-  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>로그 백업 ${ts}</title><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet"><style>body{font-family:'Noto Sans KR',sans-serif;background:#faf8f4;color:#2d2416;padding:40px 20px;max-width:800px;margin:0 auto;}h1{font-family:'Noto Serif KR',serif;font-size:22px;margin-bottom:32px;color:#4a3320;}</style></head><body><h1>📖 로그 백업 — ${ts}</h1>${body}</body></html>`;
-  const b=new Blob([html],{type:'text/html'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download=`logboard_${ts}.html`; a.click();
-  showToast('HTML 내보내기 완료');
-}
+
 function importJSON(input){
   const file=input.files[0]; if(!file) return;
   const r=new FileReader();
