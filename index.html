@@ -911,45 +911,95 @@ function saveTurnImg(idx){
     const a=document.createElement('a'); a.download=`${t}_${idx+1}.png`; a.href=cvs.toDataURL('image/png'); a.click();
   }).catch(()=>{ try{document.body.removeChild(wrap);}catch(e){} });
 }
-function buildCaptureWrap(widthPx){
-  const el=document.getElementById('detail-turns');
+/* 배너 이미지를 canvas에 직접 cover 방식으로 그려서 html2canvas object-fit 버그 우회 */
+function drawBannerToCanvas(imgSrc, canvasW, canvasH, posX, posY, zoom){
+  return new Promise(resolve=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=canvasW*2; canvas.height=canvasH*2; // scale:2
+    const ctx=canvas.getContext('2d');
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      // cover 계산: 이미지를 캔버스에 꽉 채우는 기본 크기
+      const cw=canvas.width, ch=canvas.height;
+      const ir=img.naturalWidth/img.naturalHeight;
+      const cr=cw/ch;
+      let dw,dh;
+      if(ir>cr){ dh=ch*zoom; dw=dh*ir; }
+      else      { dw=cw*zoom; dh=dw/ir; }
+      // object-position % → px offset
+      const ox=(posX/100)*(cw-dw);
+      const oy=(posY/100)*(ch-dh);
+      ctx.drawImage(img, ox, oy, dw, dh);
+      resolve(canvas);
+    };
+    img.onerror=()=>resolve(null);
+    img.src=imgSrc;
+  });
+}
+
+async function captureAndSave(widthPx, filename){
+  const log=logs.find(l=>l.id===currentDetailId);
+  const scale=2;
+  const bannerH=220; // 배너 높이(px)
+
+  // 1. 배너 이미지 캔버스 직접 그리기
+  let bannerCanvas=null;
   const ban=document.getElementById('detail-banner');
-  const wrap=document.createElement('div');
-  wrap.style.cssText=`position:fixed;left:-9999px;top:0;width:${widthPx}px;background:#faf8f4;padding:0;z-index:-1;font-family:'Noto Sans KR',sans-serif;`;
-  if(ban && ban.innerHTML){
-    const bc=ban.cloneNode(true);
-    // 배너 높이 고정
-    const bi=bc.querySelector('.theme-banner-inner');
-    if(bi) bi.style.height='240px';
-    wrap.appendChild(bc);
+  if(ban && ban.style.display!=='none'){
+    const inner=ban.querySelector('.theme-banner-inner');
+    const img=inner?inner.querySelector('img'):null;
+    if(img){
+      const px=parseFloat(inner.dataset.posx||50);
+      const py=parseFloat(inner.dataset.posy||50);
+      const zm=parseFloat(inner.dataset.zoom||1);
+      bannerCanvas=await drawBannerToCanvas(img.src, widthPx, bannerH, px, py, zm);
+    }
   }
+
+  // 2. 본문(detail-turns) html2canvas 캡처 — 이미지 없는 영역
+  const el=document.getElementById('detail-turns');
+  const wrap=document.createElement('div');
+  wrap.style.cssText=`position:fixed;left:-9999px;top:0;width:${widthPx}px;background:#faf8f4;padding:20px;z-index:-1;font-family:'Noto Sans KR',sans-serif;`;
   const tc=el.cloneNode(true);
-  // 캡처용 패딩
-  tc.style.padding='20px';
+  tc.querySelectorAll('button').forEach(b=>b.remove());
   wrap.appendChild(tc);
-  wrap.querySelectorAll('button').forEach(b=>b.remove());
   document.body.appendChild(wrap);
-  return wrap;
+
+  try{
+    const bodyCanvas=await html2canvas(wrap,{
+      scale,useCORS:true,allowTaint:true,
+      backgroundColor:'#faf8f4',width:widthPx,windowWidth:widthPx
+    });
+    document.body.removeChild(wrap);
+
+    // 3. 최종 합성
+    const totalH=(bannerCanvas?bannerH*scale:0)+bodyCanvas.height;
+    const final=document.createElement('canvas');
+    final.width=widthPx*scale; final.height=totalH;
+    const ctx=final.getContext('2d');
+    ctx.fillStyle='#faf8f4'; ctx.fillRect(0,0,final.width,final.height);
+    if(bannerCanvas){ ctx.drawImage(bannerCanvas,0,0); }
+    ctx.drawImage(bodyCanvas,0,bannerCanvas?bannerH*scale:0);
+
+    const a=document.createElement('a');
+    a.download=filename; a.href=final.toDataURL('image/png'); a.click();
+  }catch(e){
+    try{document.body.removeChild(wrap);}catch(_){}
+    console.error('capture failed',e);
+  }
 }
 
 function saveAllImg(){
   const log=logs.find(l=>l.id===currentDetailId);
   const t=(log&&log.title?log.title:'log').replace(/\s+/g,'_').slice(0,14);
-  const wrap=buildCaptureWrap(720);
-  html2canvas(wrap,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#faf8f4',width:720,windowWidth:720}).then(cvs=>{
-    document.body.removeChild(wrap);
-    const a=document.createElement('a'); a.download=`${t}_all.png`; a.href=cvs.toDataURL('image/png'); a.click();
-  }).catch(()=>{ try{document.body.removeChild(wrap);}catch(e){} });
+  captureAndSave(720, `${t}_all.png`);
 }
 
 function saveAllImgWide(){
   const log=logs.find(l=>l.id===currentDetailId);
   const t=(log&&log.title?log.title:'log').replace(/\s+/g,'_').slice(0,14);
-  const wrap=buildCaptureWrap(1080);
-  html2canvas(wrap,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#faf8f4',width:1080,windowWidth:1080}).then(cvs=>{
-    document.body.removeChild(wrap);
-    const a=document.createElement('a'); a.download=`${t}_wide.png`; a.href=cvs.toDataURL('image/png'); a.click();
-  }).catch(()=>{ try{document.body.removeChild(wrap);}catch(e){} });
+  captureAndSave(1080, `${t}_wide.png`);
 }
 
 /* ══ 백업 ══ */
