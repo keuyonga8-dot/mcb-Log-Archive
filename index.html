@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>로그 보드</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&family=Nanum+Myeongjo:wght@400;700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Gaegu&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;500;700&family=Nanum+Myeongjo:wght@400;700&family=Gowun+Batang:wght@400;700&family=Nanum+Gothic:wght@400;700&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#faf8f4; --surface:#fffefb; --border:#e8dfd0; --border2:#d4c8b5;
@@ -89,7 +90,7 @@ body{display:flex;flex-direction:column;overflow:hidden;}
 /* ── 턴 카드 ── */
 .turn-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:14px;box-shadow:var(--shadow);}
 .turn-save-row{display:flex;justify-content:flex-end;margin-bottom:8px;}
-.turn-body{font-family:'Noto Serif KR',serif;font-size:13.5px;line-height:2.05;color:var(--text);white-space:pre-wrap;word-break:keep-all;}
+.turn-body{font-family:var(--body-font,'Noto Serif KR',serif);font-size:13.5px;line-height:2.05;color:var(--text);white-space:pre-wrap;word-break:keep-all;}
 .turn-body .starred{font-style:italic;color:#9a8a7a;}
 .turn-body .quoted{color:#c8843a;}
 .turn-body .starred-strong{font-weight:700;}
@@ -106,6 +107,12 @@ body{display:flex;flex-direction:column;overflow:hidden;}
 .save-img-btn:hover{background:#b5742e;}
 .save-img-btn.outline{background:none;color:var(--accent);border:1px solid var(--accent);}
 .save-img-btn.outline:hover{background:var(--accent-soft);}
+
+/* ── 폰트 선택 ── */
+.font-selector{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
+.font-selector-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-right:4px;white-space:nowrap;}
+.font-btn{padding:4px 10px;border:1px solid var(--border);background:var(--bg);border-radius:5px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .13s;font-family:inherit;white-space:nowrap;}
+.font-btn.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:600;}
 
 /* ── MODAL ── */
 .modal-bg{position:fixed;inset:0;background:rgba(40,28,15,.38);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);padding:16px;}
@@ -161,6 +168,25 @@ body{display:flex;flex-direction:column;overflow:hidden;}
 /* ── EMPTY ── */
 .empty-state{text-align:center;padding:70px 20px;color:var(--text3);}
 .empty-state p{font-size:13px;margin-top:8px;}
+
+/* ── 검색바 ── */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);transition:border-color .13s;}
+.search-input:focus{outline:none;border-color:var(--accent);}
+.search-clear{padding:6px 12px;border:1px solid var(--border);background:var(--surface);border-radius:7px;font-size:12px;color:var(--text3);cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .13s;}
+.search-clear:hover{color:var(--accent);border-color:var(--accent);}
+
+/* ── 핀 표시 ── */
+.b-pin{color:var(--accent);font-size:11px;flex-shrink:0;}
+.board-row.pinned{background:linear-gradient(90deg,var(--accent-soft) 0%,transparent 100%);}
+.board-row.pinned:hover{background:var(--accent-soft);}
+
+/* ── 자동저장 배지 ── */
+.autosave-badge{display:none;font-size:9px;color:var(--accent2);background:var(--accent-soft);padding:2px 7px;border-radius:8px;margin-left:8px;border:1px solid var(--border);}
+
+/* ── 날짜 메타 ── */
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;}
+.meta-row-single{margin-bottom:6px;}
 
 /* ── 이미지 카드형 목록 ── */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
@@ -293,6 +319,10 @@ body.layout-compact .main-inner{max-width:660px;}
             <button class="action-btn primary" onclick="openNewLog()">＋ 새 로그</button>
           </div>
         </div>
+        <div class="search-bar">
+          <input class="search-input" id="search-input" type="text" placeholder="제목 · 본문 검색..." oninput="onSearch(this.value)">
+          <button class="search-clear" onclick="clearSearch()">✕ 초기화</button>
+        </div>
         <div id="log-list"></div>
       </div>
 
@@ -307,11 +337,22 @@ body.layout-compact .main-inner{max-width:660px;}
           <div class="detail-acts">
             <button class="save-img-btn outline" onclick="saveAllImg()" style="font-size:11px;padding:5px 12px;">📷 저장</button>
             <button class="save-img-btn outline" onclick="saveAllImgWide()" style="font-size:11px;padding:5px 12px;" title="1080px 와이드 캡처">📷 와이드</button>
+            <button class="action-btn" id="pin-btn" onclick="togglePin()">📌 고정</button>
+            <button class="action-btn" onclick="duplicateCurrentLog()">복제</button>
             <button class="action-btn" onclick="editCurrentLog()">수정</button>
             <button class="action-btn danger" onclick="deleteCurrentLog()">삭제</button>
           </div>
         </div>
         <div id="detail-banner" style="display:none;"></div>
+        <div class="font-selector" id="font-selector" style="display:none;">
+          <span class="font-selector-label">폰트</span>
+          <button class="font-btn active" onclick="setBodyFont('Noto Serif KR',this)" style="font-family:'Noto Serif KR'">노토세리프</button>
+          <button class="font-btn" onclick="setBodyFont('Gowun Batang',this)" style="font-family:'Gowun Batang'">고운바탕</button>
+          <button class="font-btn" onclick="setBodyFont('Nanum Myeongjo',this)" style="font-family:'Nanum Myeongjo'">나눔명조</button>
+          <button class="font-btn" onclick="setBodyFont('Nanum Gothic',this)" style="font-family:'Nanum Gothic'">나눔고딕</button>
+          <button class="font-btn" onclick="setBodyFont('IBM Plex Sans KR',this)" style="font-family:'IBM Plex Sans KR'">IBM Plex</button>
+          <button class="font-btn" onclick="setBodyFont('Noto Sans KR',this)" style="font-family:'Noto Sans KR'">노토산스</button>
+        </div>
         <div id="detail-turns"></div>
       </div>
 
@@ -323,7 +364,7 @@ body.layout-compact .main-inner{max-width:660px;}
 <div class="modal-bg" id="log-modal">
   <div class="modal">
     <div class="modal-hd">
-      <h3 id="log-modal-title">📝 새 로그 작성</h3>
+      <h3 id="log-modal-title">📝 새 로그 작성<span class="autosave-badge" id="autosave-badge">임시저장됨</span></h3>
       <button class="modal-x" onclick="closeLogModal()">×</button>
     </div>
     <div class="modal-body">
@@ -335,10 +376,47 @@ body.layout-compact .main-inner{max-width:660px;}
         <label class="lw-label">분류</label>
         <select class="lw-input" id="lw-category" style="cursor:pointer;"></select>
       </div>
-      <div class="lw-row" style="display:flex;align-items:center;gap:10px;">
+      <div class="lw-row" style="display:flex;align-items:center;gap:16px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);">
           <input type="checkbox" id="lw-star"> ⭐ 즐겨찾기
         </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);">
+          <input type="checkbox" id="lw-pinned"> 📌 고정
+        </label>
+      </div>
+
+      <!-- 날짜 메타 -->
+      <div class="lw-row">
+        <label class="lw-label" style="display:flex;align-items:center;justify-content:space-between;">
+          날짜 / 메타 정보
+          <button type="button" onclick="toggleMetaFields()" style="font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;background:none;border:none;color:var(--accent);cursor:pointer;" id="meta-toggle-btn">펼치기 ▾</button>
+        </label>
+        <div id="meta-fields" style="display:none;">
+          <div class="meta-grid">
+            <div>
+              <label class="lw-label" style="font-size:9px;">📅 날짜</label>
+              <input class="lw-input" type="date" id="lw-date" style="font-size:12px;">
+            </div>
+            <div>
+              <label class="lw-label" style="font-size:9px;">⏰ 시각</label>
+              <input class="lw-input" type="time" id="lw-time" style="font-size:12px;">
+            </div>
+          </div>
+          <div class="meta-grid">
+            <div>
+              <label class="lw-label" style="font-size:9px;">🌐 장소</label>
+              <input class="lw-input" type="text" id="lw-place" placeholder="장소" style="font-size:12px;">
+            </div>
+            <div>
+              <label class="lw-label" style="font-size:9px;">⭐ 날씨</label>
+              <input class="lw-input" type="text" id="lw-weather" placeholder="맑음" style="font-size:12px;">
+            </div>
+          </div>
+          <div class="meta-row-single">
+            <label class="lw-label" style="font-size:9px;">💘 감정 / 기타</label>
+            <input class="lw-input" type="text" id="lw-mood" placeholder="감정, 관계, 상황 등 자유 입력" style="font-size:12px;">
+          </div>
+        </div>
       </div>
 
       <!-- 테마 배너 이미지 -->
@@ -395,8 +473,11 @@ const STORE = 'logboard_v2';
 const CAT_STORE = 'logboard_cats_v1';
 let logs = [], filterMode = 'all', editingId = null, currentDetailId = null;
 let themeImgData = '';
-let currentCategory = ''; // '' = 전체, 'starred' = 즐겨찾기, else = 카테고리명
-let viewMode = localStorage.getItem('lb_view') || 'board'; // 'board' | 'card'
+let currentCategory = '';
+let viewMode = localStorage.getItem('lb_view') || 'board';
+let searchQuery = '';
+const DRAFT_KEY = 'logboard_draft_v1'; // 자동저장 키
+let autosaveTimer = null;
 
 function loadLogs(){ try{ logs=JSON.parse(localStorage.getItem(STORE)||'[]'); }catch(e){ logs=[]; } }
 function saveLogs(){ localStorage.setItem(STORE, JSON.stringify(logs)); }
@@ -430,9 +511,34 @@ function parseMarkup(text){
 
 /* ══ 목록 ══ */
 function getFiltered(){
-  if(currentCategory === 'starred') return logs.filter(l=>l.starred);
-  if(currentCategory === '') return logs;
-  return logs.filter(l=>l.category === currentCategory);
+  let fil;
+  if(currentCategory === 'starred') fil = logs.filter(l=>l.starred);
+  else if(currentCategory === '') fil = logs;
+  else fil = logs.filter(l=>l.category === currentCategory);
+  // 검색 필터
+  if(searchQuery){
+    const q = searchQuery.toLowerCase();
+    fil = fil.filter(l=>{
+      if((l.title||'').toLowerCase().includes(q)) return true;
+      if((l.turns||[]).some(t=>(t.body||'').toLowerCase().includes(q))) return true;
+      return false;
+    });
+  }
+  // 핀 고정: pinned 항목 맨 앞
+  const pinned = fil.filter(l=>l.pinned);
+  const rest   = fil.filter(l=>!l.pinned);
+  return [...pinned, ...rest];
+}
+
+/* ══ 검색 ══ */
+function onSearch(val){
+  searchQuery = val.trim();
+  renderList();
+}
+function clearSearch(){
+  searchQuery='';
+  document.getElementById('search-input').value='';
+  renderList();
 }
 
 function setViewMode(mode, btn){
@@ -460,11 +566,12 @@ function renderBoardView(list, fil){
     const ds = d ? `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}` : '';
     const titleShow = log.title || ds;
     const star = log.starred ? '<span class="b-star">⭐</span>' : '';
+    const pinBadge = log.pinned ? '<span class="b-pin">📌</span>' : '';
     const catObj = log.category ? loadCats().find(c=>c.name===log.category) : null;
     const catBadge = log.category ? `<span style="font-size:9px;padding:1px 6px;background:var(--accent-soft);color:var(--accent2);border-radius:8px;border:1px solid var(--border);font-weight:600;">${catObj?catObj.icon:'🏷️'} ${escH(log.category)}</span>` : '';
-    return `<tr class="board-row" onclick="showDetail(${log.id})">
+    return `<tr class="board-row${log.pinned?' pinned':''}" onclick="showDetail(${log.id})">
       <td class="b-num">${fil.length-i}</td>
-      <td><div class="b-title">${star}<span class="b-title-text">${escH(titleShow)}</span>${catBadge}</div></td>
+      <td><div class="b-title">${star}${pinBadge}<span class="b-title-text">${escH(titleShow)}</span>${catBadge}</div></td>
       <td class="b-date">${ds}</td>
       <td><div class="b-acts">
         <button class="b-btn" onclick="event.stopPropagation();editLog(${log.id})">수정</button>
@@ -592,9 +699,31 @@ function showDetail(id){
   const d = log.id ? new Date(log.id) : null;
   const ts = d ? `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : '';
   document.getElementById('detail-title').textContent = log.title || ts;
-  document.getElementById('detail-meta').textContent = (log.title ? ts + (log.starred ? ' · ⭐' : '') : (log.starred ? '⭐ 즐겨찾기' : ''));
+  // 메타 정보 조합
+  const metaParts = [];
+  if(log.title) metaParts.push(ts);
+  if(log.date) metaParts.push('📅 '+log.date+(log.time?' '+log.time:''));
+  if(log.place) metaParts.push('🌐 '+log.place);
+  if(log.weather) metaParts.push('⭐ '+log.weather);
+  if(log.mood) metaParts.push('💘 '+log.mood);
+  if(log.starred) metaParts.push('⭐ 즐겨찾기');
+  if(log.pinned) metaParts.push('📌 고정됨');
+  document.getElementById('detail-meta').textContent = metaParts.join(' · ');
+  // 핀 버튼 텍스트
+  const pinBtn = document.getElementById('pin-btn');
+  if(pinBtn) pinBtn.textContent = log.pinned ? '📌 고정해제' : '📌 고정';
 
   /* 테마 배너 */
+  // 폰트 선택 바 표시
+  const fsel=document.getElementById('font-selector');
+  if(fsel) fsel.style.display='';
+  // 저장된 폰트 적용
+  const savedFont=localStorage.getItem('lb_body_font')||'Noto Serif KR';
+  document.documentElement.style.setProperty('--body-font',`'${savedFont}'`);
+  document.querySelectorAll('.font-btn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('onclick')&&b.getAttribute('onclick').includes(savedFont));
+  });
+
   const bannerEl = document.getElementById('detail-banner');
   if(log.themeImg){
     bannerEl.style.display = '';
@@ -838,12 +967,29 @@ function openNewLog(){
   document.getElementById('log-modal-title').textContent='📝 새 로그 작성';
   document.getElementById('lw-title').value='';
   document.getElementById('lw-star').checked=false;
+  document.getElementById('lw-pinned').checked=false;
   document.getElementById('lw-category').value = currentCategory && currentCategory !== 'starred' ? currentCategory : '';
+  // 메타 초기화
+  ['lw-date','lw-time','lw-place','lw-weather','lw-mood'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  // 날짜 기본값
+  document.getElementById('lw-date').value = new Date().toISOString().slice(0,10);
   removeThemeImg();
   document.getElementById('turns-editor').innerHTML='';
-  addTurnEditor();
+  // 자동저장 불러오기
+  const draft = loadDraft();
+  if(draft && draft.turns && draft.turns.length){
+    if(confirm('작성 중이던 임시저장이 있어요. 불러올까요?')){
+      applyDraftToForm(draft);
+    } else {
+      clearDraft();
+      addTurnEditor();
+    }
+  } else {
+    addTurnEditor();
+  }
   renderCatSelect();
   document.getElementById('log-modal').classList.add('show');
+  startAutosave();
 }
 function editLog(id){
   const log=logs.find(l=>l.id===id); if(!log) return;
@@ -852,6 +998,13 @@ function editLog(id){
   document.getElementById('lw-title').value=log.title||'';
   document.getElementById('lw-category').value=log.category||'';
   document.getElementById('lw-star').checked=!!log.starred;
+  document.getElementById('lw-pinned').checked=!!log.pinned;
+  // 메타 필드
+  document.getElementById('lw-date').value=log.date||'';
+  document.getElementById('lw-time').value=log.time||'';
+  document.getElementById('lw-place').value=log.place||'';
+  document.getElementById('lw-weather').value=log.weather||'';
+  document.getElementById('lw-mood').value=log.mood||'';
   // 테마 이미지
   if(themeImgData){
     const wrap=document.getElementById('theme-img-preview');
@@ -863,20 +1016,29 @@ function editLog(id){
   turns.forEach(t=>addTurnEditor(t.body||'',t.html||'',t.img||'',t.imgPos||'bottom',t.imgSize||'original'));
   document.getElementById('log-modal').classList.add('show');
 }
-function closeLogModal(){ document.getElementById('log-modal').classList.remove('show'); }
+function closeLogModal(){
+  document.getElementById('log-modal').classList.remove('show');
+  stopAutosave();
+}
 
 function saveLog(){
   const log={
     id: editingId||Date.now(),
     title: document.getElementById('lw-title').value.trim(),
     starred: document.getElementById('lw-star').checked,
+    pinned: document.getElementById('lw-pinned').checked,
     category: document.getElementById('lw-category').value,
+    date: document.getElementById('lw-date').value,
+    time: document.getElementById('lw-time').value,
+    place: document.getElementById('lw-place').value.trim(),
+    weather: document.getElementById('lw-weather').value.trim(),
+    mood: document.getElementById('lw-mood').value.trim(),
     themeImg: themeImgData,
     turns: getTurns(),
   };
   if(editingId){ const i=logs.findIndex(l=>l.id===editingId); if(i>=0) logs[i]=log; }
   else logs.unshift(log);
-  saveLogs(); closeLogModal();
+  saveLogs(); clearDraft(); stopAutosave(); closeLogModal();
   if(editingId){
     // 수정: 상세 뷰 또는 목록 어디서 수정했든 바로 상세 뷰로
     showDetail(log.id);
@@ -888,6 +1050,24 @@ function saveLog(){
 }
 
 function editCurrentLog(){ if(currentDetailId) editLog(currentDetailId); }
+
+function togglePin(){
+  const log=logs.find(l=>l.id===currentDetailId); if(!log) return;
+  log.pinned=!log.pinned;
+  saveLogs(); showDetail(currentDetailId);
+  showToast(log.pinned?'목록 상단에 고정했어요.':'고정을 해제했어요.');
+}
+
+function duplicateCurrentLog(){
+  const log=logs.find(l=>l.id===currentDetailId); if(!log) return;
+  const copy=JSON.parse(JSON.stringify(log));
+  copy.id=Date.now();
+  copy.title=(copy.title?copy.title+' (복제)':'(복제)');
+  copy.pinned=false;
+  logs.unshift(copy);
+  saveLogs(); showDetail(copy.id);
+  showToast('로그를 복제했어요.');
+}
 function deleteCurrentLog(){ if(currentDetailId) deleteLog(currentDetailId); }
 function deleteLog(id){
   if(!confirm('이 로그를 삭제할까요?')) return;
@@ -1082,6 +1262,76 @@ function addCat(){
 function deleteCat(idx){
   const cats = loadCats(); cats.splice(idx,1); saveCats(cats);
   renderCatList();
+}
+
+function toggleMetaFields(){
+  const el=document.getElementById('meta-fields');
+  const btn=document.getElementById('meta-toggle-btn');
+  const open=el.style.display==='none';
+  el.style.display=open?'':'none';
+  btn.textContent=open?'접기 ▴':'펼치기 ▾';
+}
+
+/* ══ 자동저장 ══ */
+function startAutosave(){
+  stopAutosave();
+  autosaveTimer=setInterval(()=>{
+    const draft={
+      title:document.getElementById('lw-title').value,
+      category:document.getElementById('lw-category').value,
+      starred:document.getElementById('lw-star').checked,
+      pinned:document.getElementById('lw-pinned').checked,
+      date:document.getElementById('lw-date').value,
+      time:document.getElementById('lw-time').value,
+      place:document.getElementById('lw-place').value,
+      weather:document.getElementById('lw-weather').value,
+      mood:document.getElementById('lw-mood').value,
+      themeImg:themeImgData,
+      turns:getTurns(),
+      savedAt:new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    const badge=document.getElementById('autosave-badge');
+    if(badge){
+      badge.style.display='inline';
+      badge.textContent='임시저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    }
+  }, 30000); // 30초마다
+}
+function stopAutosave(){
+  if(autosaveTimer){ clearInterval(autosaveTimer); autosaveTimer=null; }
+}
+function loadDraft(){
+  try{ return JSON.parse(localStorage.getItem(DRAFT_KEY)||'null'); }catch(e){ return null; }
+}
+function clearDraft(){
+  localStorage.removeItem(DRAFT_KEY);
+  const badge=document.getElementById('autosave-badge');
+  if(badge) badge.style.display='none';
+}
+function applyDraftToForm(draft){
+  document.getElementById('lw-title').value=draft.title||'';
+  document.getElementById('lw-category').value=draft.category||'';
+  document.getElementById('lw-star').checked=!!draft.starred;
+  document.getElementById('lw-pinned').checked=!!draft.pinned;
+  document.getElementById('lw-date').value=draft.date||'';
+  document.getElementById('lw-time').value=draft.time||'';
+  document.getElementById('lw-place').value=draft.place||'';
+  document.getElementById('lw-weather').value=draft.weather||'';
+  document.getElementById('lw-mood').value=draft.mood||'';
+  if(draft.themeImg){ themeImgData=draft.themeImg; const w=document.getElementById('theme-img-preview'); w.style.display='block'; w.innerHTML=`<img src="${draft.themeImg}"><button class="theme-img-remove" onclick="removeThemeImg()">×</button>`; }
+  document.getElementById('turns-editor').innerHTML='';
+  (draft.turns||[{body:'',html:'',img:'',imgPos:'bottom',imgSize:'original'}]).forEach(t=>addTurnEditor(t.body,t.html,t.img,t.imgPos,t.imgSize));
+  const badge=document.getElementById('autosave-badge');
+  if(badge && draft.savedAt){ badge.style.display='inline'; badge.textContent='임시저장 '+new Date(draft.savedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); }
+}
+
+/* ══ 폰트 선택 ══ */
+function setBodyFont(font, btn){
+  document.documentElement.style.setProperty('--body-font',`'${font}'`);
+  localStorage.setItem('lb_body_font', font);
+  document.querySelectorAll('.font-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
 }
 
 function showToast(msg){
